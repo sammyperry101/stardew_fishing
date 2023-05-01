@@ -1,6 +1,5 @@
 import pygame
-import time
-import math
+import random
 import os
 
 # Define colour constants
@@ -17,6 +16,7 @@ class Cursor():
         self.width = 20
         self.height = 80
         self.y = window.get_height() - self.height
+        self.progress_bar = ProgressBar(window=window)
     
     def spacePressed(self):
         if self.y > 0:
@@ -37,11 +37,15 @@ class Cursor():
             self.y = window.get_height() - self.height
         pygame.draw.rect(window, green, [0, self.y, self.width, self.height])
 
+        self.progress_bar.draw(window=window)
+
     def checkCollision(self, fish):
         fish_midpoint = fish.y - (self.height / 2)
 
         if fish_midpoint > self.y and fish_midpoint < self.y + self.height:
-            print("COLLISION")
+            self.progress_bar.update("Collision")
+        else: 
+            self.progress_bar.update("No Collision")
 
 class Fish():
     def __init__(self, window : pygame.Surface, name : str):
@@ -54,6 +58,32 @@ class Fish():
 
     def draw(self, window : pygame.Surface):
         window.blit(self.image, (0, self.y))
+
+    def move(self, window : pygame.Surface):
+        move = random.randint(-2, 2)
+        self.y = min(move + self.y, window.get_height() - self.height)
+        self.y = self.y = max(move + self.y, 0)
+
+class ProgressBar():
+    def __init__(self, window : pygame.Surface):
+        self.width = 20
+        self.x = 40
+        self.y = window.get_height()
+        self.height = window.get_height()
+        self.complete = False
+
+    def update(self, update : str):
+        if update == "Collision":
+            self.y -= 5
+        else:
+            if self.y < self.height:
+                self.y += 5
+        
+        if self.y == 0:
+            self.complete = True
+        
+    def draw(self, window : pygame.Surface):
+        pygame.draw.rect(window, green, [self.x, self.y, self.width, self.height])
 
 def init():
     # Initialise PyGame window
@@ -79,6 +109,8 @@ def gameLoop(window, clock):
     while not game_over:
         space_pressed = False
 
+        fish.move(window=window)
+
         # Code for human player events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -101,9 +133,12 @@ def gameLoop(window, clock):
         window.fill(black)
         cursor.draw(window=window)
         fish.draw(window=window)
+        cursor.checkCollision(fish)
         pygame.display.update()
 
-        cursor.checkCollision(fish)
+        if cursor.progress_bar.complete:
+            print("COMPLETED!")
+            pygame.quit()
 
         clock.tick(100)
     
